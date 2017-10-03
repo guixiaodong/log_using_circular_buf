@@ -1,2 +1,2 @@
 # log_using_circular_buf
-# this is a log util which using circular buffer
+# This is a logging util base on circular buffer
