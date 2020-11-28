@@ -28,7 +28,7 @@ from util import (
 #    parse_json,
 #    parse_sku_id,
 #    parse_items_dict,
-#    response_status,
+    response_status,
 #    save_image,
 #    split_area_id
 )
@@ -119,13 +119,13 @@ class Assistant(object):
         #
 
     def _get_login_page(self):
-        url = "https://passport.jd.com/new/login.aspx"
+        url = "http://passport.jd.com/new/login.aspx"
         page = self.sess.get(url, headers=self.headers)
         return page
 
 
     def _get_QRcode(self):
-        url = 'https://qr.m.jd.com/show'
+        url = 'http://qr.m.jd.com/show'
         payload = {
             'appid': 133,
             'size': 147,
@@ -134,7 +134,7 @@ class Assistant(object):
        
         headers = {
             'User-Agent': self.user_agent,
-            'Referer': 'https://passport.jd.com/new/login.aspx',
+            'Referer': 'http://passport.jd.com/new/login.aspx',
         }
 
         resp = self.sess.get(url=url, headers=headers, params=payload)
@@ -143,3 +143,126 @@ class Assistant(object):
             logger.info('获取二维码失败')
             return False
 
+        
+root@nkgphisprc00880:/usr1/python_script/jd-assistant# cat util.py
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+import functools
+import json
+import os
+import random
+import re
+import warnings
+from base64 import b64encode
+
+import requests
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_v1_5 as Cipher_pkcs1_v1_5
+
+from log import logger
+
+RSA_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDC7kw8r6tq43pwApYvkJ5lalja
+N9BZb21TAIfT/vexbobzH7Q8SUdP5uDPXEBKzOjx2L28y7Xs1d9v3tdPfKI2LR7P
+AzWBmDMn8riHrDDNpUpJnlAGUqJG9ooPn8j7YNpcxCa1iybOlc2kEhmJn5uwoanQ
+q+CA6agNkqly2H4j6wIDAQAB
+-----END PUBLIC KEY-----"""
+
+DEFAULT_TIMEOUT = 10
+
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'
+
+def encrypt_pwd(password, public_key=RSA_PUBLIC_KEY):
+    rsa_key = RSA.importKey(public_key)
+    encryptor = Cipher_pkcs1_v1_5.new(rsa_key)
+    cipher = b64encode(encryptor.encrypt(password.encode('utf-8')))
+    return cipher.decode('utf-8')
+
+
+#def encrypt_payment_pwd(payment_pwd):
+    
+
+
+def deprecated(func):
+    """This decorator is used to mark functions as deprecated.
+    It will result in a warning being emitted when the function is used.
+    """
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.simplefilter('always', DeprecationWarning) # turn off filter
+        warnings.warn(
+            "Call to deprecated function {}.".format(func.__name__),
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        warnings.simplefilter('default', DeprecationWarning) # reset filter
+        return func(*args, **kwargs)
+
+    return new_func
+
+
+
+def check_login(func):
+    """用户登陆态校验装饰器。若用户未登录，则调用扫描登陆"""
+
+    @functools.wraps(func)
+    def new_func(self, *args, **kwargs):
+        if not self.is_login:
+            logger.info("{0} 需要登陆后调用，开始扫码登陆".format(func.__name__))
+            self.login_by_QRcode()
+        return func(self, *args, **kwargs)
+
+    return new_func
+
+#get_tag_value
+#get_random_useragent
+#open_image
+#parse_area_id
+#parse_json
+#parse_sku_id
+#parse_items_dict
+#response_status
+#save_image
+#split_area_id        
+        
+    
+    
+    root@nkgphisprc00880:/usr1/python_script/jd-assistant# cat main.py 
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+from jd_assistant import Assistant
+
+if __name__ == '__main__':
+    """
+    my maotai
+    """
+
+    sku_ids = '4736323'
+    area = '12_904_907_50559'
+    asst = Assistant() #初始化
+    asst.login_by_QRcode() #扫码登陆
+#    asst.buy_item_in_stock(sku_ids=sku_ids, area=area, wait_all=False, stock_interval=5) #根据商品是否有货自动下单
+#    asst.login_by_QRcode()
+#    asst.clear_cart()
+#    asst.add_item_to_cart(sku_ids='4736323')
+#    asst.submit_order()
+
+
+root@nkgphisprc00880:/usr1/python_script/jd-assistant# cat config.ini 
+[account]
+payment_pwd = 
+
+[config]
+eid = 2QRCKMPMH2ZHMAIXALL33RLFLM3YO6CWUZRCYCWSUTMTB5IUBUUAQDFOHAEMOUSPNDRQNNLW4SGYGZIESYSV6ISRLQ 
+fp = b5d4e5a4bc936ce402120aeacaa93735
+track_id = undefined
+risk_control = undefined
+
+timeout = 
+
+random_useragent = false
+
+[messenger]
+enable = false
+sckey = 
